@@ -1,0 +1,57 @@
+﻿@page "/calculator"
+@using FirstCanculator.DTO
+@using FirstCanculator.Models
+@using FirstCanculator.Service
+@inject CanculatorService _cancilatorService
+@using Blazorise
+
+<PageTitle>Calculator</PageTitle>
+
+<p>
+    <input type="text" placeholder="Insert Number" @bind-value="canculatorDTO.Action" />
+</p>
+
+<p class="button-container">
+    <button type="button" class="btn btn-primary" @onclick="CalculateResult">To Calculate</button>
+</p>
+
+<p><strong>Result:</strong>@result</p>
+
+
+<table class="table">
+    <thead>
+        <tr>
+            <th>Action</th>
+            <th>Result</th>
+            <th>CreateDate</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var teacheres in canculators)
+        {
+            <tr>
+                <td>@teacheres.Action</td>
+                <td>@teacheres.Result</td>
+                <td>@teacheres.CreatedAt</td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+@code {
+    private CanculatorDTO canculatorDTO = new CanculatorDTO();
+    private List<CanculatorModels> canculators = new List<CanculatorModels>();
+    private double? result;
+
+    protected override async Task OnInitializedAsync()
+    {
+        canculators = await _cancilatorService.GetAll();
+    }
+
+    private async Task CalculateResult()
+    {
+        var calculatorResult = await _cancilatorService.Create(canculatorDTO);
+        await OnInitializedAsync();
+        result = canculators?.LastOrDefault()?.Result;
+    }
+}
