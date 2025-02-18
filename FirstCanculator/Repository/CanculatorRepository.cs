@@ -16,7 +16,7 @@ namespace FirstCanculator.Repository
             try
             {
                 if (canculator?.Result.HasValue != null && canculator.Action != null)
-                {
+                { 
                     var result = await _context.Canculators.AddAsync(canculator);
                     await _context.SaveChangesAsync();
                     return canculator;

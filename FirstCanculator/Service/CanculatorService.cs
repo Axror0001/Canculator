@@ -24,7 +24,7 @@ namespace FirstCanculator.Service
 
             try
             {
-                double resultValue = EvaluateExpression(canculatorDTO.Action);
+                double resultValue = Calculate(canculatorDTO.Action);
 
                 var canculator = new CanculatorModels
                 {
@@ -50,57 +50,114 @@ namespace FirstCanculator.Service
             }
         }
 
-        private double EvaluateExpression(string expression)
+        public double Calculate(string expression)
         {
-            List<double> values = new();
-            List<char> operators = new();
-            int i = 0;
+            var tokens = Tokenize(expression);
+            var postfix = InfixToPostfix(tokens);
+            return EvaluatePostfix(postfix);
+        }
+        private List<string> Tokenize(string expression)
+        {
+            var tokens = new List<string>();
+            string number = "";
 
-            while (i < expression.Length)
+            foreach (char c in expression)
             {
-                char toChar = expression[i];
+                if (char.IsDigit(c) || c == '.')
+                {
+                    number += c; 
+                }
+                else if (c == ' ')
+                {
+                    continue; 
+                }
+                else
+                {
+                    if (!string.IsNullOrEmpty(number))
+                    {
+                        tokens.Add(number);
+                        number = "";
+                    }
+                    tokens.Add(c.ToString()); 
+                }
+            }
+            if (!string.IsNullOrEmpty(number))
+            {
+                tokens.Add(number);
+            }
 
-                if (char.IsDigit(toChar) || toChar == '.')
+            return tokens;
+        }
+        private List<string> InfixToPostfix(List<string> tokens)
+        {
+            var output = new List<string>();
+            var operators = new Stack<string>();
+
+            var precedence = new Dictionary<string, int>
+        {
+            { "+", 1 },
+            { "-", 1 },
+            { "*", 2 },
+            { "/", 2 }
+        };
+
+            foreach (var token in tokens)
+            {
+                if (double.TryParse(token, out _)) 
                 {
-                    int start = i;
-                    while (i < expression.Length && (char.IsDigit(expression[i]) || expression[i] == '.')) i++;
-                    values.Add(double.Parse(expression[start..i]));
-                    continue;
+                    output.Add(token);
                 }
-                else if (IsOperator(toChar))
+                else if (precedence.ContainsKey(token)) 
                 {
-                    while (operators.Count > 0 && Priority(operators[^1]) >= Priority(toChar))
-                        ApplyOperator(operators, values);
-                    operators.Add(toChar);
+                    while (operators.Count > 0 && precedence.ContainsKey(operators.Peek()) &&
+                           precedence[operators.Peek()] >= precedence[token])
+                    {
+                        output.Add(operators.Pop()); 
+                    }
+                    operators.Push(token); 
                 }
-                i++;
             }
 
             while (operators.Count > 0)
-                ApplyOperator(operators, values);
+            {
+                output.Add(operators.Pop());
+            }
 
-            return values[^1];
+            return output;
         }
 
-        private static bool IsOperator(char c) => "+-*/".Contains(c);
-
-        private static int Priority(char op) => op is '+' or '-' ? 1 : 2;
-
-        private static void ApplyOperator(List<char> operators, List<double> values)
+        private double EvaluatePostfix(List<string> postfix)
         {
-            double b = values[^1]; values.RemoveAt(values.Count - 1);
-            double a = values[^1]; values.RemoveAt(values.Count - 1);
-            char op = operators[^1]; operators.RemoveAt(operators.Count - 1);
+            var stack = new Stack<double>();
 
-            values.Add(op switch
+            foreach (var token in postfix)
             {
-                '+' => a + b,
-                '-' => a - b,
-                '*' => a * b,
-                '/' when b != 0 => a / b,
-                '/' => throw new Exception("Nolga bo‘lish mumkin emas"),
-                _ => throw new Exception("Noto‘g‘ri operator")
-            });
+                if (double.TryParse(token, out double number)) 
+                {
+                    stack.Push(number);
+                }
+                else 
+                {
+                    double operand2 = stack.Pop();
+                    double operand1 = stack.Pop();
+                    double result = ApplyOperation(token, operand1, operand2);
+                    stack.Push(result);
+                }
+            }
+
+            return stack.Pop(); 
+        }
+
+        private double ApplyOperation(string operation, double operand1, double operand2)
+        {
+            switch (operation)
+            {
+                case "+": return operand1 + operand2;
+                case "-": return operand1 - operand2;
+                case "*": return operand1 * operand2;
+                case "/": return operand1 / operand2;
+                default: throw new InvalidOperationException("Noto'g'ri operator");
+            }
         }
 
 
